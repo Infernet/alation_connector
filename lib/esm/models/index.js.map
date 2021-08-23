@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/models/index.ts"],"names":[],"mappings":"AAAA;AAEA;AAEA;AAEA","sourcesContent":["export * from './DatasourceModel';\n\nexport * from './SchemaModel';\n\nexport * from './TableModel';\n\nexport * from './AttributeModel';\n"],"file":"index.js"}
