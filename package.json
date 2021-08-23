@@ -17,6 +17,7 @@
   "bugs": {
     "url": "https://github.com/Infernet/alation_connector/issues"
   },
+  "typings": "lib/types/index.d.ts",
   "author": "Sergey Ogoltsov-Yezersky",
   "scripts": {
     "build": "node ./clear.js && npm run build:cjs && npm run build:esm && npm run build:types",
