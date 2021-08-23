@@ -1,6 +1,6 @@
 {
   "name": "alation_connector",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "private": false,
   "description": "Typed connector to Alation api.",
   "homepage": "https://github.com/Infernet/alation_connector",
@@ -20,7 +20,7 @@
   "typings": "lib/types/index.d.ts",
   "author": "Sergey Ogoltsov-Yezersky",
   "scripts": {
-    "build": "node ./clear.js && npm run build:cjs && npm run build:esm && npm run build:types",
+    "build": "node ./clear.js && npm run eslint:fix && npm run build:cjs && npm run build:esm && npm run build:types",
     "build:cjs": "babel src --config-file ./babel.cjs.config.js --out-dir lib/cjs --extensions \".ts,.tsx,.js,.jsx\" --source-maps",
     "watch:cjs": "babel src --config-file ./babel.cjs.config.js --out-dir lib/cjs --extensions \".ts,.tsx,.js,.jsx\" --source-maps -w",
     "build:esm": "babel src --config-file ./babel.esm.config.js --out-dir lib/esm --extensions \".ts,.tsx,.js,.jsx\" --source-maps",
@@ -44,6 +44,7 @@
     "@babel/plugin-transform-modules-commonjs": "^7.15.0",
     "@babel/plugin-transform-typescript": "^7.15.0",
     "@babel/preset-typescript": "^7.15.0",
+    "@types/fs-extra": "^9.0.12",
     "@types/node": "^16.7.1",
     "@typescript-eslint/eslint-plugin": "^4.29.1",
     "@typescript-eslint/parser": "^4.29.1",
@@ -54,6 +55,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "fs-extra": "^10.0.0",
     "tslib": "^2.3.1"
   },
   "peerDependencies": {

@@ -193,7 +193,7 @@ implements IAbstractModel<Entity, Update, CreateKey> {
   protected async getPagesData<E extends Entity = Entity>(config: IRequestConfig): Promise<IPageResponse<E>> {
     try {
       const response = await (this.apiClient(config) as AxiosPromise<E[]>);
-      const next: string | undefined = response.headers[ALATION_NEXT_PAGE_HEADER_KEY];
+      const next: string | undefined = response?.headers[ALATION_NEXT_PAGE_HEADER_KEY];
 
       return {
         values: response.data,

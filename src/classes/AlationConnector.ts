@@ -1,4 +1,4 @@
-import fs from 'fs';
+import {existsSync, readFileSync, unlinkSync, outputFileSync} from 'fs-extra';
 import {
   createAccessTokenRoute,
   createRefreshTokenRoute,
@@ -26,13 +26,14 @@ export abstract class AlationConnector {
   protected constructor(user: IConnectorAuthConfig, alationURL: string, options?: IConnectorOptions) {
     this.user = user;
     const defaultOptions: IConnectorConfig = {
+      tokenStoragePath: path.resolve(process.cwd(), 'keys/alation/'),
       jobInterval: 1000,
       tokenName: 'connector_token',
     };
     this.options = {...defaultOptions, ...options};
 
-    this.accessTokenPath = path.resolve(process.cwd(), `keys/alation_connector_${this.options.tokenName}_access_token.json`);
-    this.refreshTokenPath = path.resolve(process.cwd(), `keys/alation_connector_${this.options.tokenName}_refresh_token.json`);
+    this.accessTokenPath = path.resolve(this.options.tokenStoragePath, `${this.options.tokenName}_access.token.json`);
+    this.refreshTokenPath = path.resolve(this.options.tokenStoragePath, `${this.options.tokenName}_refresh.token.json`);
 
     this.alationURL = alationURL.charAt(alationURL.length - 1) === '/' ? alationURL.slice(0, alationURL.length - 1) : alationURL;
     this.apiClient = axios.create({baseURL: this.alationURL});
@@ -54,8 +55,8 @@ export abstract class AlationConnector {
 
   private async getAccessToken(): Promise<IAccessToken> {
     try {
-      if (fs.existsSync(this.accessTokenPath)) {
-        return JSON.parse(fs.readFileSync(this.accessTokenPath, {encoding: 'utf-8'}));
+      if (existsSync(this.accessTokenPath)) {
+        return JSON.parse(readFileSync(this.accessTokenPath, {encoding: 'utf-8'}));
       }
       return this.regenerateAccessToken();
     } catch (error) {
@@ -67,8 +68,8 @@ export abstract class AlationConnector {
 
   private async getRefreshToken(): Promise<IRefreshToken> {
     try {
-      if (fs.existsSync(this.refreshTokenPath)) {
-        return JSON.parse(fs.readFileSync(this.refreshTokenPath, {encoding: 'utf-8'}));
+      if (existsSync(this.refreshTokenPath)) {
+        return JSON.parse(readFileSync(this.refreshTokenPath, {encoding: 'utf-8'}));
       } else {
         return this.createOrUpdateRefreshToken();
       }
@@ -144,12 +145,13 @@ export abstract class AlationConnector {
 
   private saveToken(token: IAccessToken | IRefreshToken): void {
     const path = ((token as IRefreshToken)['refresh_token']) ? this.refreshTokenPath : this.accessTokenPath;
-    if (fs.existsSync(path)) fs.unlinkSync(path);
-    fs.writeFileSync(path, JSON.stringify(token), {encoding: 'utf-8'});
+    if (existsSync(path)) unlinkSync(path);
+    outputFileSync(path, JSON.stringify(token), {encoding: 'utf-8'});
   }
 }
 
 interface IConnectorConfig {
   jobInterval: number;
   tokenName: string;
+  tokenStoragePath: string;
 }

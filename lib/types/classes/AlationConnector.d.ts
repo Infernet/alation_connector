@@ -19,6 +19,7 @@ export declare abstract class AlationConnector {
 interface IConnectorConfig {
     jobInterval: number;
     tokenName: string;
+    tokenStoragePath: string;
 }
 export {};
 //# sourceMappingURL=AlationConnector.d.ts.map
