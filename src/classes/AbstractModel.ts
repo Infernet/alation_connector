@@ -1,42 +1,42 @@
-import {AxiosInstance, AxiosPromise} from 'axios';
-import {Alation, AlationEntityType} from '..';
-import {
-  ALATION_CATALOG_ROUTE,
-  ALATION_NEXT_PAGE_HEADER_KEY,
-  ALATION_UPDATE_ROUTE,
-  alationCreateRoute,
-  CUSTOM_FIELD_VALUE_EDIT_ROUTE,
-  OBJECT_TYPE,
-} from '../constants';
+import {AxiosInstance} from 'axios';
+import {AlationEntityType, IEntityModel, IModel} from '..';
+import {ALATION_CATALOG_ROUTE, ALATION_UPDATE_ROUTE, alationCreateRoute} from '../constants';
 import {prepareApiBody, sliceCollection} from '../helpers';
 import {
-  IAbstractModel,
   IAlationEntity,
   IAlationUpdateBase,
   ICreateData,
   ICreateKey,
   ICreateRecord,
-  IEditCustomFieldValue,
-  IEditCustomFieldValueRequest,
-  IEditCustomFieldValueResponse,
   IJob,
   IJobFinish,
   IPageResponse,
-  IRequestConfig,
   IUpdateResponse,
 } from '../interfaces';
 import {AlationEntityId, AlationKey, Flag} from '../types';
 
-export abstract class AbstractModel<Entity extends IAlationEntity, Update extends IAlationUpdateBase, CreateKey extends ICreateKey>
-implements IAbstractModel<Entity, Update, CreateKey> {
-  protected core: Alation;
+export abstract class AbstractModel<Entity extends IAlationEntity,
+    Update extends IAlationUpdateBase,
+    Search,
+    CreateKey extends ICreateKey,
+    CreateData extends ICreateData>
+implements IEntityModel<Entity, Update, Search, CreateKey, CreateData> {
+  protected core: IModel;
   protected apiClient: AxiosInstance;
   protected entityType: AlationEntityType;
 
-  protected constructor(core: Alation, apiClient: AxiosInstance, entityType: AlationEntityType) {
+  protected constructor(core: IModel, apiClient: AxiosInstance, entityType: AlationEntityType) {
     this.core = core;
     this.apiClient = apiClient;
     this.entityType = entityType;
+
+    // публичные методы
+    this.getById = this.getById.bind(this);
+    this.search = this.search.bind(this);
+    this.create = this.create.bind(this);
+    this.update = this.update.bind(this);
+    // вспомогательные методы
+    this.makeEntityKey = this.makeEntityKey.bind(this);
   }
 
   async getById<E extends Entity = Entity>(id: AlationEntityId): Promise<E | null> {
@@ -50,12 +50,12 @@ implements IAbstractModel<Entity, Update, CreateKey> {
     }
   }
 
-  async update<U extends IAlationUpdateBase = Update>(records: U, limit?: number): Promise<IUpdateResponse>;
-  async update<U extends IAlationUpdateBase = Update>(records: U[], limit?: number): Promise<IUpdateResponse>;
-  async update<U extends IAlationUpdateBase = Update>(records: U[] | U, limit = 100): Promise<IUpdateResponse> {
+  async update<U extends Update = Update>(records: U, limit?: number): Promise<IUpdateResponse>;
+  async update<U extends Update = Update>(records: U[], limit?: number): Promise<IUpdateResponse>;
+  async update<U extends Update = Update>(records: U[] | U, limit = 100): Promise<IUpdateResponse> {
     try {
       if (Array.isArray(records)) {
-        const pages = sliceCollection(prepareApiBody<U>(records), limit);
+        const pages = sliceCollection(prepareApiBody<Update>(records), limit);
         let response: IUpdateResponse = {
           new_objects: 0,
           updated_objects: 0,
@@ -76,7 +76,7 @@ implements IAbstractModel<Entity, Update, CreateKey> {
 
         return response;
       } else {
-        const body = prepareApiBody<U>(records);
+        const body = prepareApiBody<Update>(records);
         const {data} = await this.apiClient.post<IUpdateResponse>(ALATION_UPDATE_ROUTE[this.entityType], body);
         return data;
       }
@@ -86,14 +86,20 @@ implements IAbstractModel<Entity, Update, CreateKey> {
     }
   }
 
-  async search<S, E extends Entity>(config: S): Promise<IPageResponse<E>>;
-  async search<S, E extends Entity>(config: S, all: Flag): Promise<Array<E>>;
-  async search<S, E extends Entity>(config: S, limit: number): Promise<IPageResponse<E>>;
-  async search<S, E extends Entity>(config: S, limit: number, all: Flag): Promise<Array<E>>;
-  async search<S, E extends Entity>(config: S, limit?: Flag | number, all?: Flag): Promise<E[] | IPageResponse<E>> {
+  async search<E extends Entity = Entity, S extends Search = Search>(config?: S): Promise<IPageResponse<E>>;
+  async search<E extends Entity = Entity, S extends Search = Search>(config: S, all: Flag): Promise<Array<E>>;
+  async search<E extends Entity = Entity, S extends Search = Search>(config: S, limit: number): Promise<IPageResponse<E>>;
+  async search<E extends Entity = Entity, S extends Search = Search>(config: S, limit: number, all: Flag): Promise<Array<E>>;
+  async search<E extends Entity = Entity, S extends Search = Search>(config?: S, limit?: Flag | number, all?: Flag): Promise<E[] | IPageResponse<E>> {
     try {
+      if (!config) {
+        return this.core.getAllData({
+          url: ALATION_CATALOG_ROUTE[this.entityType],
+          method: 'get',
+        });
+      }
       if (typeof limit === 'boolean' && limit) {
-        return this.getAllData<E>({
+        return this.core.getAllData<E>({
           url: ALATION_CATALOG_ROUTE[this.entityType],
           method: 'get',
           params: config,
@@ -101,19 +107,19 @@ implements IAbstractModel<Entity, Update, CreateKey> {
       }
       if (typeof limit === 'number' && limit > 0) {
         if (typeof all === 'boolean' && all) {
-          return this.getAllData<E>({
+          return this.core.getAllData<E>({
             url: ALATION_CATALOG_ROUTE[this.entityType],
             method: 'get',
             params: {...config, limit},
           });
         }
-        return this.getPagesData<E>({
+        return this.core.getPagesData<E>({
           url: ALATION_CATALOG_ROUTE[this.entityType],
           method: 'get',
           params: {...config, limit},
         });
       }
-      return this.getPagesData<E>({
+      return this.core.getPagesData<E>({
         url: ALATION_CATALOG_ROUTE[this.entityType],
         method: 'get',
         params: config,
@@ -124,18 +130,20 @@ implements IAbstractModel<Entity, Update, CreateKey> {
     }
   }
 
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, key: K, data: D): Promise<IJob>;
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, key: K, data: D, wait: Flag): Promise<IJobFinish>;
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, entities: ICreateRecord<K, D>[]): Promise<IJob>;
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, entities: ICreateRecord<K, D>[], wait: Flag): Promise<IJobFinish>;
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, entities: ICreateRecord<K, D>[], limit: number): Promise<IJob[]>;
-  async create<K extends CreateKey, D extends ICreateData>(dsId: number, entities: ICreateRecord<K, D>[], limit: number, wait: Flag): Promise<IJobFinish[]>;
-  async create<K extends CreateKey, D extends ICreateData>(
-      dsId: number, key: K | ICreateRecord<K, D>[], data?: D | Flag | number, wait?: Flag): Promise<IJob | IJobFinish | IJob[] | IJobFinish[]> {
+  async create<CD extends CreateData = CreateData>(dsId: number, key: CreateKey, data: CD): Promise<IJob>;
+  async create<CD extends CreateData = CreateData>(dsId: number, key: CreateKey, data: CD, wait: Flag): Promise<IJobFinish>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<CreateKey, CD>[]): Promise<IJob>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<CreateKey, CD>[], wait: Flag): Promise<IJobFinish>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<CreateKey, CD>[], limit: number): Promise<IJob[]>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<CreateKey, CD>[], limit: number, wait: Flag): Promise<IJobFinish[]>;
+  async create<CD extends CreateData = CreateData>(dsId: number,
+      key: CreateKey | ICreateRecord<CreateKey, CD>[],
+      data?: CD | Flag | number,
+      wait?: Flag): Promise<IJob | IJobFinish | IJob[] | IJobFinish[]> {
     try {
       if (!Array.isArray(key)) {
         const entityKey = this.makeEntityKey(dsId, key);
-        const entityData = data as D;
+        const entityData = data as CD;
 
         const {data: job} = await this.apiClient.post<IJob>(alationCreateRoute(dsId), JSON.stringify({key: entityKey, ...entityData}));
 
@@ -170,59 +178,5 @@ implements IAbstractModel<Entity, Update, CreateKey> {
   }
 
   protected abstract makeEntityKey(datasourceId: number, key: CreateKey): AlationKey;
-
-  protected async getAllData<E extends Entity = Entity>(config: IRequestConfig): Promise<Array<E>> {
-    try {
-      const result: Array<E> = [];
-
-      let response = await this.getPagesData<E>(config);
-      result.push(...response.values);
-
-      while (response.next) {
-        response = await response.next();
-        result.push(...response.values);
-      }
-
-      return result;
-    } catch (e) {
-      console.error('CODE00000304 getAllData(): ', e?.message);
-      throw e;
-    }
-  }
-
-  protected async getPagesData<E extends Entity = Entity>(config: IRequestConfig): Promise<IPageResponse<E>> {
-    try {
-      const response = await (this.apiClient(config) as AxiosPromise<E[]>);
-      const next: string | undefined = response?.headers[ALATION_NEXT_PAGE_HEADER_KEY];
-
-      return {
-        values: response.data,
-        next: next ? () => (this.getPagesData({...config, url: next})) : null,
-      };
-    } catch (e) {
-      console.error('CODE00000305 getPagesData(): ', e?.message);
-      throw e;
-    }
-  }
-
-  async updateCustomFields<V = any>(body: IEditCustomFieldValueRequest<V>): Promise<IEditCustomFieldValueResponse>;
-  async updateCustomFields<V = any>(body: IEditCustomFieldValueRequest<V>[]): Promise<IEditCustomFieldValueResponse>;
-  async updateCustomFields<V = any>(body: IEditCustomFieldValueRequest<V> | IEditCustomFieldValueRequest<V>[]): Promise<IEditCustomFieldValueResponse> {
-    try {
-      const otype = OBJECT_TYPE[this.entityType];
-      let params: string;
-      if (!Array.isArray(body)) {
-        params = JSON.stringify(({...body, otype} as IEditCustomFieldValue));
-      } else {
-        params = body.map<string>((record) => JSON.stringify(({...record, otype} as IEditCustomFieldValue))).join('\n');
-      }
-      const {data} = await this.apiClient.post<IEditCustomFieldValueResponse>(CUSTOM_FIELD_VALUE_EDIT_ROUTE, params);
-      return data;
-    } catch (e) {
-      console.error('CODE00000306 updateCustomFields(): ' + e?.message);
-      throw e;
-    }
-  }
 }
-
 

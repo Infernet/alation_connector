@@ -4,9 +4,9 @@ export type CustomFieldId = number;
 
 export type AlationEntityId = number;
 
-export type AlationEntityType = 'datasource' | 'schema' | 'table' | 'attribute';
+export type AlationEntityType = 'datasource' | 'schema' | 'table' | 'attribute' | 'article';
 
-export type ObjectType = 'data' | 'schema' | 'table' | 'attribute';
+export type ObjectType = 'data' | 'schema' | 'table' | 'attribute' | 'article' | 'user' | 'group';
 
 export type AlationKey<T extends string = string> = T;
 

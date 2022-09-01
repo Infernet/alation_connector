@@ -1,22 +1,22 @@
 import { AbstractModel } from '../classes';
-import { Alation } from '../index';
+import { IEntityModel, IModel } from '../index';
 import { AxiosInstance } from 'axios';
-import { AlationEntityId, Flag } from '../types';
-import { IAlationEntity, ICustomField, IPageResponse } from '../interfaces';
-export declare class DatasourceModel<Entity extends IDatasource = IDatasource> extends AbstractModel<Entity, never, never> {
-    constructor(core: Alation, apiClient: AxiosInstance);
-    search<S extends IDatasourceSearchParams, E extends Entity = Entity>(config: S): Promise<IPageResponse<E>>;
-    search<S extends IDatasourceSearchParams, E extends Entity = Entity>(config: S, all: Flag): Promise<Array<E>>;
-    search<S extends IDatasourceSearchParams, E extends Entity = Entity>(config: S, limit: number): Promise<IPageResponse<E>>;
-    search<S extends IDatasourceSearchParams, E extends Entity = Entity>(config: S, limit: number, all: Flag): Promise<Array<E>>;
+import { AlationEntityId } from '../types';
+import { IAlationEntity, ICustomField } from '../interfaces';
+export declare class DatasourceModel<Entity extends IDatasource = IDatasource, Search extends IDatasourceSearchParams = IDatasourceSearchParams> extends AbstractModel<Entity, any, Search, any, any> implements IEntityModel<Entity, any, Search, any, any> {
+    constructor(jobModel: IModel, apiClient: AxiosInstance);
     protected makeEntityKey(): never;
     update(): Promise<never>;
     create(): Promise<never>;
 }
-export interface IDatasource<CustomFields extends ICustomField = ICustomField> extends IAlationEntity<CustomFields> {
+export interface IDatasource<CustomFields extends ICustomField = ICustomField> extends IAlationEntity {
     'is_virtual': boolean;
     'uri': string;
     'dbtype': string;
+    'title': string;
+    'description': string;
+    'url': string;
+    'custom_fields': Array<CustomFields>;
 }
 export declare type IDatasourceSearchParams = {
     'id'?: AlationEntityId;

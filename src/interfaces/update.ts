@@ -1,5 +1,3 @@
-import {AlationKey} from '../types';
-
 export interface IUpdateResponse {
   'new_objects': number;
   'updated_objects': number;
@@ -9,5 +7,5 @@ export interface IUpdateResponse {
 }
 
 export interface IAlationUpdateBase {
-  'key': AlationKey;
+
 }

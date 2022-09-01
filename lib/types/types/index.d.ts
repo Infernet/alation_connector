@@ -1,8 +1,8 @@
 export declare type Flag = true;
 export declare type CustomFieldId = number;
 export declare type AlationEntityId = number;
-export declare type AlationEntityType = 'datasource' | 'schema' | 'table' | 'attribute';
-export declare type ObjectType = 'data' | 'schema' | 'table' | 'attribute';
+export declare type AlationEntityType = 'datasource' | 'schema' | 'table' | 'attribute' | 'article';
+export declare type ObjectType = 'data' | 'schema' | 'table' | 'attribute' | 'article' | 'user' | 'group';
 export declare type AlationKey<T extends string = string> = T;
 export declare enum JobStatusEnum {
     RUNNING = "running",

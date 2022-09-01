@@ -1,38 +1,53 @@
-import {
-  AttributeModel,
-  DatasourceModel,
-  IAttribute,
-  IAttributeUpdate,
-  IDatasource,
-  ISchema,
-  ISchemaUpdate,
-  ITable,
-  ITableUpdate,
-  SchemaModel,
-  TableModel,
-} from './models';
+import {ArticleModel, AttributeModel, DatasourceModel, SchemaModel, TableModel} from './models';
 import {AlationConnector, IConnectorOptions} from './classes';
-import {IConnectorAuthConfig, IJob, IJobFinish, IJobSerialize, IJobState} from './interfaces';
-import {ALATION_JOB_STATE_ROUTE} from './constants';
+import {
+  IAlationEntity,
+  IConnectorAuthConfig,
+  ICustomFieldValue,
+  ICustomFieldValueDeleteResponse,
+  ICustomFieldValueResponse,
+  IJob,
+  IJobFinish,
+  IJobSerialize,
+  IJobState,
+  IModel,
+  IPageResponse,
+  IRequestConfig,
+} from './interfaces';
+import {ALATION_JOB_STATE_ROUTE, ALATION_NEXT_PAGE_HEADER_KEY, CUSTOM_FIELD_VALUE_ROUTE} from './constants';
 import {sleep} from './helpers';
-import {JobStatusEnum} from './types';
+import {AlationEntityId, JobStatusEnum} from './types';
+import {AxiosPromise} from 'axios';
+import {UserModel} from './models/UserModel';
 
-export class Alation<AttributeEntity extends IAttribute = IAttribute, AttributeEntityUpdate extends IAttributeUpdate = IAttributeUpdate,
-    TableEntity extends ITable = ITable, TableEntityUpdate extends ITableUpdate = ITableUpdate,
-    SchemaEntity extends ISchema = ISchema, SchemaEntityUpdate extends ISchemaUpdate = ISchemaUpdate,
-    DatasourceEntity extends IDatasource = IDatasource> extends AlationConnector {
-  public readonly Datasource: DatasourceModel<DatasourceEntity>;
-  public readonly Schema: SchemaModel<SchemaEntity, SchemaEntityUpdate>;
-  public readonly Table: TableModel<TableEntity, TableEntityUpdate>;
-  public readonly Attribute: AttributeModel<AttributeEntity, AttributeEntityUpdate>;
+export class Alation<Article extends ArticleModel = ArticleModel,
+    Attribute extends AttributeModel = AttributeModel,
+    Table extends TableModel = TableModel,
+    Schema extends SchemaModel = SchemaModel,
+    Datasource extends DatasourceModel = DatasourceModel,
+    User extends UserModel = UserModel> extends AlationConnector implements IModel {
+  public readonly Datasource: Datasource;
+  public readonly Schema: Schema;
+  public readonly Table: Table;
+  public readonly Attribute: Attribute;
+  public readonly Article: Article;
+  public readonly User: User;
 
 
-  constructor(userData: IConnectorAuthConfig, host: string, options?:IConnectorOptions) {
+  constructor(userData: IConnectorAuthConfig, host: string, options?: IConnectorOptions) {
     super(userData, host, options);
-    this.Datasource = new DatasourceModel<DatasourceEntity>(this, this.apiClient);
-    this.Schema = new SchemaModel<SchemaEntity, SchemaEntityUpdate>(this, this.apiClient);
-    this.Table = new TableModel<TableEntity, TableEntityUpdate>(this, this.apiClient);
-    this.Attribute = new AttributeModel<AttributeEntity, AttributeEntityUpdate>(this, this.apiClient);
+    this.Datasource = new DatasourceModel(this, this.apiClient) as Datasource;
+    this.Schema = new SchemaModel(this, this.apiClient) as Schema;
+    this.Table = new TableModel(this, this.apiClient) as Table;
+    this.Attribute = new AttributeModel(this, this.apiClient) as Attribute;
+    this.Article = new ArticleModel(this, this.apiClient) as Article;
+    this.User = new UserModel(this, this.apiClient) as User;
+
+    this.getJobState = this.getJobState.bind(this);
+    this.getJobResult = this.getJobResult.bind(this);
+    this.getAllData = this.getAllData.bind(this);
+    this.getPagesData = this.getPagesData.bind(this);
+    this.updateCustomFieldsValue = this.updateCustomFieldsValue.bind(this);
   }
 
   async getJobState(job: IJob): Promise<IJobState> {
@@ -55,6 +70,60 @@ export class Alation<AttributeEntity extends IAttribute = IAttribute, AttributeE
       return response as IJobFinish;
     } catch (e) {
       console.error('CODE00000101 getJobResult(): ', e?.message);
+      throw e;
+    }
+  }
+
+  async getAllData<E extends IAlationEntity>(config: IRequestConfig): Promise<Array<E>> {
+    try {
+      const result: Array<E> = [];
+
+      let response = await this.getPagesData<E>(config);
+      result.push(...response.values);
+
+      while (response.next) {
+        response = await response.next();
+        result.push(...response.values);
+      }
+
+      return result;
+    } catch (e) {
+      console.error('CODE00000304 getAllData(): ', e?.message);
+      throw e;
+    }
+  }
+
+  async getPagesData<E extends IAlationEntity>(config: IRequestConfig): Promise<IPageResponse<E>> {
+    try {
+      const response = await (this.apiClient(config) as AxiosPromise<E[]>);
+      const next: string | undefined = response?.headers[ALATION_NEXT_PAGE_HEADER_KEY];
+
+      return {
+        values: response.data,
+        next: next ? () => (this.getPagesData({...config, url: next})) : null,
+      };
+    } catch (e) {
+      console.error('CODE00000305 getPagesData(): ', e?.message);
+      throw e;
+    }
+  }
+
+  async updateCustomFieldsValue<V = any>(body: ICustomFieldValue<V>): Promise<ICustomFieldValueResponse<V>> {
+    try {
+      const {data} = await this.apiClient.post<ICustomFieldValueResponse>(CUSTOM_FIELD_VALUE_ROUTE, body);
+      return data;
+    } catch (e) {
+      console.error('CODE00000306 updateCustomFields(): ' + e?.message);
+      throw e;
+    }
+  }
+
+  async deleteCustomFieldValue(id: AlationEntityId): Promise<ICustomFieldValueDeleteResponse> {
+    try {
+      const {data} = await this.apiClient.delete<ICustomFieldValueDeleteResponse>(`${CUSTOM_FIELD_VALUE_ROUTE}${id}/`);
+      return data;
+    } catch (e) {
+      console.error('CODE00000307 deleteCustomFieldValue(): ' + e?.message);
       throw e;
     }
   }

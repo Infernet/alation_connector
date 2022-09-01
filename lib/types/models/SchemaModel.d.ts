@@ -1,28 +1,23 @@
 import { AbstractModel } from '../classes';
-import { Alation } from '../index';
+import { IEntityModel, IModel } from '../index';
 import { AxiosInstance } from 'axios';
-import { AlationEntityId, AlationKey, Flag } from '../types';
-import { IAlationEntity, IAlationUpdateBase, ICreateData, ICreateKey, ICreateRecord, ICustomField, IJob, IJobFinish, IPageResponse } from '../interfaces';
-export declare class SchemaModel<Entity extends ISchema = ISchema, Update extends ISchemaUpdate = ISchemaUpdate> extends AbstractModel<Entity, Update, ISchemaKey> {
-    constructor(core: Alation, apiClient: AxiosInstance);
-    search<S extends ISchemaSearchParams, E extends Entity = Entity>(config: S): Promise<IPageResponse<E>>;
-    search<S extends ISchemaSearchParams, E extends Entity = Entity>(config: S, all: Flag): Promise<Array<E>>;
-    search<S extends ISchemaSearchParams, E extends Entity = Entity>(config: S, limit: number): Promise<IPageResponse<E>>;
-    search<S extends ISchemaSearchParams, E extends Entity = Entity>(config: S, limit: number, all: Flag): Promise<Array<E>>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, key: K, data: D): Promise<IJob>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, key: K, data: D, wait: Flag): Promise<IJobFinish>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, entities: ICreateRecord<K, D>[]): Promise<IJob>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, entities: ICreateRecord<K, D>[], wait: Flag): Promise<IJobFinish>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, entities: ICreateRecord<K, D>[], limit: number): Promise<IJob[]>;
-    create<K extends ISchemaKey, D extends ISchemaCreate>(dsId: number, entities: ICreateRecord<K, D>[], limit: number, wait: Flag): Promise<IJobFinish[]>;
+import { AlationEntityId, AlationKey } from '../types';
+import { IAlationEntity, IAlationUpdateBase, ICreateData, ICreateKey, ICustomField } from '../interfaces';
+export declare class SchemaModel<Entity extends ISchema = ISchema, Update extends ISchemaUpdate = ISchemaUpdate, Search extends ISchemaSearchParams = ISchemaSearchParams, CreateData extends ISchemaCreate = ISchemaCreate> extends AbstractModel<Entity, Update, Search, ISchemaKey, CreateData> implements IEntityModel<Entity, Update, Search, ISchemaKey, CreateData> {
+    constructor(jobModel: IModel, apiClient: AxiosInstance);
     protected makeEntityKey(datasourceId: number, key: ISchemaKey): AlationKey;
 }
-export interface ISchema<CustomFields extends ICustomField = ICustomField> extends IAlationEntity<CustomFields> {
+export interface ISchema<CustomFields extends ICustomField = ICustomField> extends IAlationEntity {
     'ds_id': AlationEntityId;
     'name': string;
     'db_comment': null | string;
+    'title': string;
+    'description': string;
+    'url': string;
+    'custom_fields': Array<CustomFields>;
 }
 export interface ISchemaUpdate<CustomFields extends ICustomField = ICustomField> extends IAlationUpdateBase {
+    'key': AlationKey;
     'title'?: string;
     'name'?: string;
     'description'?: string;
@@ -38,12 +33,12 @@ export interface ISchemaUpdate<CustomFields extends ICustomField = ICustomField>
     'base_table'?: null | string;
     'custom_fields'?: CustomFields[];
 }
-export interface ISchemaKey extends ICreateKey {
+export interface ISchemaKey extends Required<ICreateKey> {
     'name': string;
 }
 export declare type ISchemaSearchParams = {
     'id'?: AlationEntityId;
-    'ds_id'?: number;
+    'ds_id'?: AlationEntityId;
     'title'?: string;
     'name'?: string;
 };

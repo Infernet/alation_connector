@@ -1,9 +1,9 @@
 import { AxiosInstance } from 'axios';
-import { IConnectorAuthConfig } from '../interfaces';
+import { IConnector, IConnectorAuthConfig, IConnectorConfig } from '../interfaces';
 export declare type IConnectorOptions = Partial<IConnectorConfig>;
-export declare abstract class AlationConnector {
-    protected apiClient: AxiosInstance;
-    protected options: IConnectorConfig;
+export declare abstract class AlationConnector implements IConnector {
+    apiClient: AxiosInstance;
+    options: IConnectorConfig;
     private readonly user;
     private readonly alationURL;
     private readonly accessTokenPath;
@@ -16,10 +16,4 @@ export declare abstract class AlationConnector {
     private validateToken;
     private saveToken;
 }
-interface IConnectorConfig {
-    jobInterval: number;
-    tokenName: string;
-    tokenStoragePath: string;
-}
-export {};
 //# sourceMappingURL=AlationConnector.d.ts.map

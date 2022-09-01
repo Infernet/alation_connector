@@ -1,4 +1,4 @@
-import {existsSync, readFileSync, unlinkSync, outputFileSync} from 'fs-extra';
+import {existsSync, outputFileSync, readFileSync, unlinkSync} from 'fs-extra';
 import {
   createAccessTokenRoute,
   createRefreshTokenRoute,
@@ -8,20 +8,20 @@ import {
   validateRefreshTokenRoute,
 } from '../constants';
 import axios, {AxiosError, AxiosInstance, AxiosRequestConfig} from 'axios';
-import {IAccessToken, IConnectorAuthConfig, IRefreshToken} from '../interfaces';
+import {IAccessToken, IConnector, IConnectorAuthConfig, IConnectorConfig, IRefreshToken} from '../interfaces';
 import {TokenStatusEnum} from '../types';
 import path from 'path';
 
 export type IConnectorOptions = Partial<IConnectorConfig>;
 
-export abstract class AlationConnector {
-  protected apiClient: AxiosInstance;
-  protected options: IConnectorConfig;
+export abstract class AlationConnector implements IConnector {
+  apiClient: AxiosInstance;
+  options: IConnectorConfig;
 
   private readonly user: IConnectorAuthConfig;
   private readonly alationURL: string;
-  private readonly accessTokenPath:string;
-  private readonly refreshTokenPath:string;
+  private readonly accessTokenPath: string;
+  private readonly refreshTokenPath: string;
 
   protected constructor(user: IConnectorAuthConfig, alationURL: string, options?: IConnectorOptions) {
     this.user = user;
@@ -148,10 +148,4 @@ export abstract class AlationConnector {
     if (existsSync(path)) unlinkSync(path);
     outputFileSync(path, JSON.stringify(token), {encoding: 'utf-8'});
   }
-}
-
-interface IConnectorConfig {
-  jobInterval: number;
-  tokenName: string;
-  tokenStoragePath: string;
 }

@@ -1,11 +1,7 @@
 import {AlationEntityId} from '../types';
 
-export interface IAlationEntity<CustomFields extends ICustomField = ICustomField> {
+export interface IAlationEntity {
   'id': AlationEntityId;
-  'title': string;
-  'description': string;
-  'url': string;
-  'custom_fields': Array<CustomFields>;
 }
 
 export interface ICustomField<N extends string = string, T extends string = string, V extends string = string> {

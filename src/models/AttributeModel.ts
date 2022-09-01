@@ -1,60 +1,46 @@
 import {AbstractModel} from '../classes';
-import {Alation} from '..';
+import {IEntityModel, IModel} from '..';
 import {AxiosInstance} from 'axios';
 import {AlationEntityId, AlationKey, Flag} from '../types';
-import {IAlationEntity, IAlationUpdateBase, ICreateData, ICreateKey, ICreateRecord, ICustomField, IJob, IJobFinish, IPageResponse} from '../interfaces';
+import {
+  IAlationEntity,
+  IAlationUpdateBase,
+  ICreateData,
+  ICreateKey,
+  ICreateRecord,
+  ICustomField,
+  IJob,
+  IJobFinish,
+} from '../interfaces';
 import {alationCreateRoute} from '../constants';
 import {sliceCollection} from '../helpers';
 
-export class AttributeModel<Entity extends IAttribute = IAttribute, Update extends IAttributeUpdate = IAttributeUpdate>
-  extends AbstractModel<Entity, Update, IAttributeKey> {
-  constructor(core: Alation, apiClient: AxiosInstance) {
-    super(core, apiClient, 'attribute');
-
-    // публичные методы
-    this.getById = this.getById.bind(this);
-    this.search = this.search.bind(this);
-    this.create = this.create.bind(this);
-    this.update = this.update.bind(this);
-    // вспомогательные методы
-    this.makeEntityKey = this.makeEntityKey.bind(this);
-    this.getAllData = this.getAllData.bind(this);
-    this.getPagesData = this.getPagesData.bind(this);
+export class AttributeModel<Entity extends IAttribute = IAttribute,
+    Update extends IAttributeUpdate = IAttributeUpdate,
+    Search extends IAttributeSearchParams = IAttributeSearchParams,
+    CreateData extends IAttributeCreate = IAttributeCreate>
+  extends AbstractModel<Entity, Update, Search, IAttributeKey, CreateData>
+  implements IEntityModel<Entity, Update, Search, IAttributeKey, CreateData> {
+  constructor(jobModel: IModel, apiClient: AxiosInstance) {
+    super(jobModel, apiClient, 'attribute');
   }
 
-  async search<S extends IAttributeSearchParams, E extends Entity = Entity>(config: S): Promise<IPageResponse<E>>;
-  async search<S extends IAttributeSearchParams, E extends Entity = Entity>(config: S, all: Flag): Promise<Array<E>>;
-  async search<S extends IAttributeSearchParams, E extends Entity = Entity>(config: S, limit: number): Promise<IPageResponse<E>>;
-  async search<S extends IAttributeSearchParams, E extends Entity = Entity>(config: S, limit: number, all: Flag): Promise<Array<E>>;
-  async search<S extends IAttributeSearchParams, E extends Entity = Entity>(config: S, limit?: Flag | number, all?: Flag): Promise<E[] | IPageResponse<E>> {
-    if (typeof limit === 'boolean' && limit) {
-      return super.search<S, E>(config, limit);
-    }
-    if (typeof limit === 'number' && limit > 0) {
-      if (typeof all === 'boolean' && all) {
-        return super.search<S, E>(config, limit, all);
-      }
-      return super.search<S, E>(config, limit);
-    }
-    return super.search<S, E>(config);
-  }
-
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, key: K, data: D): Promise<IJob>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, key: K, data: D, wait: Flag): Promise<IJobFinish>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, entities: ICreateRecord<K, D>[]): Promise<IJob>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, entities: ICreateRecord<K, D>[], wait: Flag): Promise<IJobFinish>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, entities: ICreateRecord<K, D>[], limit: number): Promise<IJob[]>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(dsId: number, entities: ICreateRecord<K, D>[], limit: number, wait: Flag):
+  async create<CD extends CreateData = CreateData>(dsId: number, key: IAttributeKey, data: CD): Promise<IJob>;
+  async create<CD extends CreateData = CreateData>(dsId: number, key: IAttributeKey, data: CD, wait: Flag): Promise<IJobFinish>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<IAttributeKey, CD>[]): Promise<IJob>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<IAttributeKey, CD>[], wait: Flag): Promise<IJobFinish>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<IAttributeKey, CD>[], limit: number): Promise<IJob[]>;
+  async create<CD extends CreateData = CreateData>(dsId: number, entities: ICreateRecord<IAttributeKey, CD>[], limit: number, wait: Flag):
       Promise<IJobFinish[]>;
-  async create<K extends IAttributeKey, D extends IAttributeCreate>(
+  async create<CD extends CreateData = CreateData>(
       dsId: number,
-      key: K | ICreateRecord<K, D>[],
-      data?: D | Flag | number,
+      key: IAttributeKey | ICreateRecord<IAttributeKey, CD>[],
+      data?: CD | Flag | number,
       wait?: Flag): Promise<IJob | IJobFinish | IJob[] | IJobFinish[]> {
     if (!Array.isArray(key)) {
       const requestData = [
         JSON.stringify({key: this.makeTableEntityKey(dsId, key)}),
-        JSON.stringify({key: this.makeEntityKey(dsId, key), ...(data as D)}),
+        JSON.stringify({key: this.makeEntityKey(dsId, key), ...(data as CD)}),
       ].join('\n');
 
       const {data: job} = await this.apiClient.post<IJob>(alationCreateRoute(dsId), requestData);
@@ -65,7 +51,7 @@ export class AttributeModel<Entity extends IAttribute = IAttribute, Update exten
         const requestData = key.map<string[]>(({key: k, data: d}) => {
           return [
             JSON.stringify({key: this.makeTableEntityKey(dsId, k)}),
-            JSON.stringify({key: this.makeEntityKey(dsId, k), ...(d as D)}),
+            JSON.stringify({key: this.makeEntityKey(dsId, k), ...(d as CD)}),
           ];
         }).flat().join('\n');
         const {data: job} = await this.apiClient.post<IJob>(alationCreateRoute(dsId), requestData);
@@ -76,7 +62,7 @@ export class AttributeModel<Entity extends IAttribute = IAttribute, Update exten
       }
       const requestPages: string[] = [];
 
-      for (const page of sliceCollection<ICreateRecord<K, D>>(key, data)) {
+      for (const page of sliceCollection<ICreateRecord<IAttributeKey, CreateData>>(key, data)) {
         const formattedPage: string[][] = [];
         for (const record of page) {
           formattedPage.push([
@@ -109,7 +95,7 @@ export class AttributeModel<Entity extends IAttribute = IAttribute, Update exten
   }
 }
 
-export interface IAttribute<CustomFields extends ICustomField = ICustomField> extends IAlationEntity<CustomFields> {
+export interface IAttribute<CustomFields extends ICustomField = ICustomField> extends IAlationEntity {
   'name': string;
   'ds_id': AlationEntityId;
   'schema_id': AlationEntityId;
@@ -120,9 +106,14 @@ export interface IAttribute<CustomFields extends ICustomField = ICustomField> ex
   'is_primary_key': boolean;
   'is_foreign_key': boolean;
   'nullable': boolean;
+  'title': string;
+  'description': string;
+  'url': string;
+  'custom_fields': Array<CustomFields>;
 }
 
 export interface IAttributeUpdate<CustomFields extends ICustomField = ICustomField> extends IAlationUpdateBase {
+  'key': AlationKey;
   'title'?: string;
   'name'?: string;
   'description'?: string;
@@ -134,7 +125,7 @@ export interface IAttributeUpdate<CustomFields extends ICustomField = ICustomFie
   'custom_fields'?: CustomFields[];
 }
 
-export interface IAttributeKey extends ICreateKey {
+export interface IAttributeKey extends Required<ICreateKey> {
   'schema_name': string;
   'table_name': string;
   'name': string;
@@ -142,9 +133,9 @@ export interface IAttributeKey extends ICreateKey {
 
 export type IAttributeSearchParams = {
   'id'?: AlationEntityId;
-  'ds_id'?: number;
-  'schema_id'?: number;
-  'table_id'?: number;
+  'ds_id'?: AlationEntityId;
+  'schema_id'?: AlationEntityId;
+  'table_id'?: AlationEntityId;
   'title'?: string;
   'name'?: string;
   'schema_name'?: string;

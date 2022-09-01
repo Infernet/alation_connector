@@ -1,4 +1,5 @@
-import {AlationEntityType, ObjectType} from 'src';
+import {AlationEntityType} from 'src';
+
 
 export const ALATION_NEXT_PAGE_HEADER_KEY = 'x-next-page';
 
@@ -8,6 +9,7 @@ export const ALATION_CATALOG_ROUTE: { [x in AlationEntityType]: string } = {
   schema: '/catalog/schema',
   table: '/catalog/table',
   attribute: '/catalog/column',
+  article: '/integration/v1/article',
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -16,11 +18,12 @@ export const ALATION_UPDATE_ROUTE: { [x in AlationEntityType]: string } = {
   schema: '/api/v1/bulk_metadata/custom_fields/default/schema?replace_values=true',
   table: '/api/v1/bulk_metadata/custom_fields/default/table?replace_values=true',
   attribute: '/api/v1/bulk_metadata/custom_fields/default/attribute?replace_values=true',
+  article: '/api/v1/bulk_metadata/custom_fields/default/article?replace_values=true',
 };
 
 export const ALATION_JOB_STATE_ROUTE = '/api/v1/bulk_metadata/job/';
 
-export const CUSTOM_FIELD_VALUE_EDIT_ROUTE = `/integration/v2/custom_field_value/`;
+export const CUSTOM_FIELD_VALUE_ROUTE = `/api/custom_field_value/`;
 
 export function alationCreateRoute(datasourceId: number): string {
   return `api/v1/bulk_metadata/extraction/${datasourceId}?set_title_descs=true`;
@@ -53,12 +56,5 @@ export const HTTP_STATUS = {
   'FORBIDDEN': 403,
   'NOT_FOUND': 404,
   'SERVER_ERROR': 500,
-};
-
-// eslint-disable-next-line no-unused-vars
-export const OBJECT_TYPE: { [x in AlationEntityType]: ObjectType } = {
-  datasource: 'data',
-  schema: 'schema',
-  table: 'table',
-  attribute: 'attribute',
+  'NO_CONTENT': 204,
 };
